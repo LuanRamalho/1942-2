@@ -1,6 +1,7 @@
 import pygame
 import random
 import sys
+import json
 
 # INITIALIZE PYGAME
 pygame.init()
@@ -19,6 +20,9 @@ explosions = []
 players = []
 background = []
 waters = []
+
+# Caminho do arquivo JSON para armazenar o highscore
+highscore_file = "highscore.json"
 
 class Animation:
  
@@ -255,18 +259,44 @@ def update_background():
 def create_water():
     w = Water()
     waters.append(w)
+    
 def update_water():
     for w in waters:
         w.update()
     if len(waters) == 0:
         create_water()
+
+def load_highscore():
+    """
+    Carrega o highscore do arquivo JSON. 
+    Retorna 0 se o arquivo não existir ou estiver corrompido.
+    """
+    try:
+        with open(highscore_file, "r") as file:
+            data = json.load(file)
+            return data.get("highscore", 0)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return 0
+
+def save_highscore(highscore):
+    """
+    Salva o highscore no arquivo JSON.
+    """
+    with open(highscore_file, "w") as file:
+        json.dump({"highscore": highscore}, file)
+
+# Inicializa o highscore carregando do arquivo JSON
+current_highscore = load_highscore()
           
+# Ajusta a função de exibição de estatísticas para mostrar o highscore
 def draw_stats():
+    global current_highscore
     p1_score_text = custom_font.render("PLAYER 1", True, white)
     high_score_text = custom_font.render("HIGH SCORE", True, gold)
     p1_points_text = custom_font.render(str(p1.score), True, light_grey)
-    high_score_points = custom_font.render(str(p1.score), True, light_grey)
+    high_score_points = custom_font.render(str(current_highscore), True, light_grey)
     p1_bomb_text = custom_font.render(str(p1.bombs), True, light_grey)
+    
     screen.blit(p1_score_text, (10, 5))
     screen.blit(high_score_text, (187, 5))
     screen.blit(p1_points_text, (10, 20))
@@ -281,7 +311,6 @@ def draw_stats():
         screen.blit(p1_bomb, (295,455))
     elif p1.bombs == 1:
         screen.blit(p1_bomb, (295,455))
-        
         
     if p1.lives == 3:
         screen.blit(p1_life, (10,455))
@@ -373,7 +402,15 @@ def check_player_life():
             if p1.lives == 0:
                 end_game()
                 return
+# Ajusta a lógica de fim de jogo para verificar e atualizar o highscore
 def end_game():
+    global current_highscore
+    # Verifica se o score atual é maior que o highscore
+    if p1.score > current_highscore:
+        current_highscore = p1.score
+        save_highscore(current_highscore)  # Salva o novo highscore
+
+    # Exibe a mensagem de fim de jogo
     font_big = pygame.font.Font("imagine_font.ttf", 36)
     game_over_text = font_big.render("GAME OVER", True, white)
     screen.blit(game_over_text, (80, 200))
